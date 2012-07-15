@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if [ -e ".rvmrc" ]; then
+  echo "(`rvm-prompt`) "
+fi
