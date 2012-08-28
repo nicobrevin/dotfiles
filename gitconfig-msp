@@ -1,0 +1,10 @@
+[color]
+	diff = auto
+	status = auto
+	branch = auto
+
+[format]
+	pretty = format:%Cred%an%Cgreen%x09%h%x09%Creset%s
+[user]
+	name = Nick Griffiths
+	email = nick@mediasp.com
