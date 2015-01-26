@@ -1,0 +1,22 @@
+GREEN="\033[0;32m"
+ORANGE="\033[1;33m"
+RED="\033[0;31m"
+PURPLE="\033[0;35m"
+CYAN="\033[0;36m"
+NOCOLOUR="\033[0m"
+function gitcolour {
+  STATUS=`git status 2>&1`
+  if   [[ $STATUS == *'working directory clean'* ]]; then
+      echo -en $GREEN
+  elif [[ $STATUS == *'not staged for commit'* ]]; then
+      echo -en $RED
+  elif [[ $STATUS == *'to be committed'* ]]; then
+      echo -en $ORANGE
+  elif [[ $STATUS == *'Untracked files'* ]]; then
+      echo -en $CYAN
+  fi
+}
+# Prettier prompt including Git status - courtesy of florent
+WHITE="\033[1;37m" # In white bold to show it's my machine
+export PS1="\[$WHITE\][\t] \u@\h:\w\[$NOCOLOUR\]\[\$(gitcolour)\]\$(__git_ps1)\[$NOCOLOUR\]$ "
+
