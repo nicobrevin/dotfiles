@@ -11,9 +11,34 @@ require("vicious")
 -- Load Debian menu entries
 require("debian.menu")
 
+-- {{{ Error handling
+-- Check if awesome encountered an error during startup and fell back to
+-- another config (This code will only ever execute for the fallback config)
+if awesome.startup_errors then
+    naughty.notify({ preset = naughty.config.presets.critical,
+                     title = "Oops, there were errors during startup!",
+                     text = awesome.startup_errors })
+end
+
+-- Handle runtime errors after startup
+do
+    local in_error = false
+    awesome.add_signal("debug::error", function (err)
+        -- Make sure we don't go into an endless error loop
+        if in_error then return end
+        in_error = true
+
+        naughty.notify({ preset = naughty.config.presets.critical,
+                         title = "Oops, an error happened!",
+                         text = err })
+        in_error = false
+    end)
+end
+-- }}}
+
 -- {{{ Variable definitions
 -- Themes define colours, icons, and wallpapers
-beautiful.init("/home/nick/.config/awesome/themes/default/theme.lua")
+beautiful.init("/usr/share/awesome/themes/default/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "x-terminal-emulator"
@@ -50,7 +75,7 @@ layouts =
 tags = {}
 for s = 1, screen.count() do
     -- Each screen has its own tag table.
-    tags[s] = awful.tag({ "Web", "Dev", "VMs", 4, 5, 6, 7, 8, "IM" }, s, layouts[2])
+    tags[s] = awful.tag({ "Web", "Dev", "VMs", 4, 5, 6, "WRMS", "Ops", "IM" }, s, layouts[2])
 end
 -- }}}
 
@@ -58,7 +83,7 @@ end
 -- Create a laucher widget and a main menu
 myawesomemenu = {
    { "manual", terminal .. " -e man awesome" },
-   { "edit config", editor_cmd .. " " .. awful.util.getdir("config") .. "/rc.lua" },
+   { "edit config", editor_cmd .. " " .. awesome.conffile },
    { "restart", awesome.restart },
    { "quit", awesome.quit }
 }
@@ -79,7 +104,7 @@ mytextclock = awful.widget.textclock({ align = "right" })
 
 -- Memory usage
 memwidget = widget({ type = "textbox" })
-vicious.register(memwidget, vicious.widgets.mem, " ($2MB/$3MB) ", 13)
+vicious.register(memwidget, vicious.widgets.mem, "$2MB/$3MB | ", 13)
 
 -- cpu usage widget
 cpuwidget = awful.widget.graph()
@@ -90,6 +115,19 @@ cpuwidget:set_gradient_colors({ "#FF5656", "#88A175", "#AECF96" })
 vicious.register(cpuwidget, vicious.widgets.cpu, "$1")
 
 
+-- Create an ACPI widget
+batterywidget = widget({ type = "textbox" })
+batterywidget.text = " | Battery | "
+batterywidgettimer = timer({ timeout = 5 })
+batterywidgettimer:add_signal("timeout",
+  function()
+    fh = assert(io.popen("acpi | cut -d, -f 2 -", "r"))
+    batterywidget.text = " | " .. fh:read("*l") .. " | "
+    fh:close()
+  end
+)
+
+batterywidgettimer:start()
 -- Create a systray
 mysystray = widget({ type = "systray" })
 
@@ -172,6 +210,7 @@ for s = 1, screen.count() do
         s == 1 and mysystray or nil,
         cpuwidget,
         memwidget,
+        batterywidget,
         mytasklist[s],
         layout = awful.widget.layout.horizontal.rightleft
     }
@@ -188,6 +227,7 @@ root.buttons(awful.util.table.join(
 
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
+    awful.key({ modkey }, "F12", function () awful.util.spawn("dm-tool lock") end),
     awful.key({ modkey,           }, "Left",   awful.tag.viewprev       ),
     awful.key({ modkey,           }, "Right",  awful.tag.viewnext       ),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore),
@@ -366,10 +406,3 @@ end)
 client.add_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.add_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 -- }}}
-
--- Some things by nick
-
-awful.util.spawn("gnome-settings-daemon")
-awful.util.spawn("nm-applet")
-awful.util.spawn("gnome-sound-applet")
-
